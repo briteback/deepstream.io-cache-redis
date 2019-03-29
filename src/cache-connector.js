@@ -57,6 +57,10 @@ module.exports = class CacheConnector extends Connection {
    */
   delete (key, callback) {
     this.sets.delete(key);
+    if (this.deletes.has(key)) {
+      // temporary, if not flushing now the previous callbacks will be lost
+      this.flush();
+    }
     this.deletes.set(key, callback)
     this.scheduleFlush()
   }
@@ -73,6 +77,10 @@ module.exports = class CacheConnector extends Connection {
    * @returns {void}
    */
   set (key, value, callback) {
+    if (this.sets.has(key)) {
+      // temporary, if not flushing now the previous callbacks will be lost
+      this.flush();
+    }
     this.sets.set(key, { value, callback })
     this.scheduleFlush()
   }
@@ -88,6 +96,11 @@ module.exports = class CacheConnector extends Connection {
    * @returns {void}
    */
    get (key, callback) {
+    if (this.gets.has(key)) {
+      // temporary, if not flushing now the previous callbacks will be lost resulting in cache retrieval timeout
+      // better solution is to keep an array of callbacks instead... fix later
+      this.flush();
+    }
      this.gets.set(key, callback)
      this.scheduleFlush()
    }
