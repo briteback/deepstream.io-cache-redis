@@ -2,8 +2,6 @@
 
 const Redis = require( 'ioredis' )
 const EventEmitter = require( 'events' ).EventEmitter
-const utils = require( 'util')
-const NUMBER = 'number'
 
 /**
  * Generic connection to Redis. Can be extended or

@@ -2,7 +2,6 @@
 
 const Connection = require('./connection')
 const pckg = require('../package.json')
-const util = require('util')
 
 /**
  * A [deepstream](http://deepstream.io) cache connector
@@ -24,9 +23,9 @@ module.exports = class CacheConnector extends Connection {
     this.name = pckg.name
     this.version = pckg.version
 
-    this.flush = this.flush.bind(this);
+    this.flush = this.flush.bind(this)
     this.sets = new Map()
-    this.gets = new Map()
+    this.gets = []
     this.deletes = new Map()
   }
 
@@ -56,10 +55,10 @@ module.exports = class CacheConnector extends Connection {
    * @returns {void}
    */
   delete (key, callback) {
-    this.sets.delete(key);
+    this.sets.delete(key)
     if (this.deletes.has(key)) {
       // temporary, if not flushing now the previous callbacks will be lost
-      this.flush();
+      this.flush()
     }
     this.deletes.set(key, callback)
     this.scheduleFlush()
@@ -79,7 +78,7 @@ module.exports = class CacheConnector extends Connection {
   set (key, value, callback) {
     if (this.sets.has(key)) {
       // temporary, if not flushing now the previous callbacks will be lost
-      this.flush();
+      this.flush()
     }
     this.sets.set(key, { value, callback })
     this.scheduleFlush()
@@ -96,19 +95,14 @@ module.exports = class CacheConnector extends Connection {
    * @returns {void}
    */
    get (key, callback) {
-    if (this.gets.has(key)) {
-      // temporary, if not flushing now the previous callbacks will be lost resulting in cache retrieval timeout
-      // better solution is to keep an array of callbacks instead... fix later
-      this.flush();
-    }
-     this.gets.set(key, callback)
+     this.gets.push([key, callback])
      this.scheduleFlush()
    }
 
    scheduleFlush () {
      if (!this.timeoutSet) {
-       this.timeoutSet = true;
-       process.nextTick(this.flush);
+       this.timeoutSet = true
+       process.nextTick(this.flush)
      }
    }
 
@@ -135,11 +129,7 @@ module.exports = class CacheConnector extends Connection {
     }
     this.deletes.clear();
 
-    const gets = this.gets.entries();
-    for (let entry of gets) {
-      const key = entry[0];
-      const callback = entry[1];
-
+    for (const [key, callback] of this.gets) {
       pipeline.get(key, (error, result) => {
         let parsedResult
 
@@ -158,8 +148,8 @@ module.exports = class CacheConnector extends Connection {
         callback(null, parsedResult)
       })
     }
-    this.gets.clear();
+    this.gets = []
 
-    pipeline.exec();
+    pipeline.exec()
   }
 }
